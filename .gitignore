@@ -3,3 +3,7 @@ node_modules/
 
 # Ignorar archivos con extensión .db
 *.db
+
+# Ignorar otros archivos
+sql_export/
+.env
