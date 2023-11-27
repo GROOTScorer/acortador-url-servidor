@@ -3,10 +3,15 @@ import { nanoid } from 'nanoid';
 import cors from "cors";
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { body, validationResult } from 'express-validator';
-const PORT = process.env.PORT || 8000;
+import dotenv from 'dotenv';
+dotenv.config();
+
+const PORT = process.env.PORT;
+const SITEURL = process.env.SITEURL
+
 
 const app = express();
 app.use(express.json());
@@ -36,11 +41,7 @@ const setupDatabase = async () => {
 
 const db = await setupDatabase();
 
-const authenticateToken = (req, res, next) => {
-   next();
-  };
-
-  app.post('/createshorturl', authenticateToken,async (req, res) => {
+  app.post('/createshorturl', async (req, res) => {
     const { url, descripcion } = req.body;
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -58,7 +59,7 @@ const authenticateToken = (req, res, next) => {
     let shortUrl;
     do {
         hash = nanoid(7);
-        shortUrl = `http://localhost:${PORT}/s/${hash}`;
+        shortUrl = `${SITEURL}:${PORT}/s/${hash}`;
     } while (await db.get('SELECT id FROM urls WHERE shortUrl = ?', shortUrl));
 
     // Insertar la nueva URL y su descripción en la base de datos
@@ -113,7 +114,7 @@ app.post('/register', [
 
 app.get('/s/:hash', async (req, res) => {
     const { hash } = req.params;
-    const urlData = await db.get('SELECT originalUrl FROM urls WHERE shortUrl = ?', `http://localhost:${PORT}/s/${hash}`);
+    const urlData = await db.get('SELECT originalUrl FROM urls WHERE shortUrl = ?', `${SITEURL}:${PORT}/s/${hash}`);
 
     if (urlData) {
         res.redirect(urlData.originalUrl);
@@ -122,7 +123,7 @@ app.get('/s/:hash', async (req, res) => {
     }
 });
 
-app.get('/latest-urls',authenticateToken, async (req, res) => {
+app.get('/latest-urls', async (req, res) => {
     try {
         const latestUrls = await db.all('SELECT originalUrl, shortUrl,descripcion FROM urls ORDER BY id DESC LIMIT 20');
         res.json(latestUrls);
